@@ -1,0 +1,263 @@
+.document-manager {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 2rem;
+
+  h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #e0e0e0;
+    margin-bottom: 0.5rem;
+  }
+
+  .subtitle {
+    color: #a0a0a0;
+    font-size: 0.9rem;
+  }
+}
+
+.upload-section {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(90deg, #3a7bd5, #00d2ff);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(58, 123, 213, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  input[type="file"] {
+    display: none;
+  }
+
+  .upload-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #3a7bd5;
+  font-size: 0.9rem;
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    animation: spin 0.8s linear infinite;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 100, 100, 0.15);
+  border: 1px solid rgba(255, 100, 100, 0.3);
+  border-radius: 8px;
+  color: #ff6464;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+
+  .error-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.success-message {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: rgba(0, 200, 100, 0.15);
+  border: 1px solid rgba(0, 200, 100, 0.3);
+  border-radius: 8px;
+  color: #00c864;
+  font-size: 0.875rem;
+  margin-top: 1rem;
+
+  .success-icon {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.document-list {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #e0e0e0;
+    margin-bottom: 1rem;
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #606060;
+
+  .empty-icon {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+  }
+
+  p {
+    font-size: 0.95rem;
+  }
+}
+
+.document-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  thead {
+    tr {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    th {
+      text-align: left;
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #a0a0a0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+  }
+
+  tbody {
+    tr {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.03);
+      }
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      font-size: 0.9rem;
+      color: #e0e0e0;
+    }
+  }
+}
+
+.filename-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  .file-icon {
+    width: 18px;
+    height: 18px;
+    color: #3a7bd5;
+  }
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  &.processed {
+    background: rgba(0, 200, 100, 0.15);
+    color: #00c864;
+  }
+
+  &.processing {
+    background: rgba(255, 200, 0, 0.15);
+    color: #ffc800;
+  }
+
+  &.failed {
+    background: rgba(255, 100, 100, 0.15);
+    color: #ff6464;
+  }
+}
+
+.actions-cell {
+  .delete-btn {
+    background: rgba(255, 100, 100, 0.1);
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: rgba(255, 100, 100, 0.2);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .trash-icon {
+      width: 16px;
+      height: 16px;
+      color: #ff6464;
+    }
+
+    .spinner-small {
+      width: 14px;
+      height: 14px;
+      animation: spin 0.8s linear infinite;
+      color: #ff6464;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .document-table {
+    display: block;
+    overflow-x: auto;
+  }
+}
