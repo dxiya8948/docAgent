@@ -206,7 +206,20 @@ export const getWikiStatus = async (): Promise<{ updated_at?: number; prompt_doc
   return response.json();
 };
 
-export const getMessages = async (): Promise<{ messages: Message[] }> => {
+export interface ReportMessage {
+  id: number;
+  conversation_id: string;
+  conversation_title: string;
+  role: string;
+  content: string;
+  timestamp: number;
+  query_type: string;
+  relevant_docs: string[];
+  response_time: number;
+  feedback: number;
+}
+
+export const getMessages = async (): Promise<{ messages: ReportMessage[] }> => {
   const response = await fetch(`${BASE_URL}/messages`);
   return response.json();
 };

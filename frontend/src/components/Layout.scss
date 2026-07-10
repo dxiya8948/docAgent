@@ -1,110 +1,164 @@
 .layout {
-  display: flex;
+  position: relative;
+  z-index: 1;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-}
-
-.sidebar {
-  width: 240px;
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 1.5rem 0;
   display: flex;
   flex-direction: column;
+}
+
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--color-border-light);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+  box-shadow: 0 2px 12px rgba(37, 99, 235, 0.04);
 }
 
 .logo {
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  font-size: 1.2rem;
+  color: var(--color-primary);
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0 1.5rem;
-  margin-bottom: 2rem;
-
-  .logo-icon {
-    width: 28px;
-    height: 28px;
-    color: #3a7bd5;
-  }
-
-  .logo-text {
-    font-size: 1.125rem;
-    font-weight: 700;
-    color: #e0e0e0;
-  }
-}
-
-.nav {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0 0.75rem;
-}
-
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: 8px;
-  color: #a0a0a0;
+  gap: 8px;
   text-decoration: none;
-  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
 
-  &:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #e0e0e0;
-  }
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
 
-  &.active {
-    background: rgba(58, 123, 213, 0.2);
-    color: #3a7bd5;
+.tab-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--color-primary-50);
+  padding: 4px;
+  border-radius: var(--radius-full);
+}
 
-    .nav-icon {
-      color: #3a7bd5;
-    }
-  }
+.tab-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: 0.85rem;
+  padding: 7px 20px;
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
 
-  .nav-icon {
-    width: 20px;
-    height: 20px;
-    color: #606060;
-    transition: color 0.3s ease;
-  }
+.tab-link:hover {
+  color: var(--color-primary);
+  background: rgba(37, 99, 235, 0.06);
+}
 
-  .nav-label {
-    font-size: 0.9rem;
-    font-weight: 500;
-  }
+.tab-link.active {
+  color: var(--color-text-inverse);
+  background: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.tab-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.top-bar-spacer {
+  width: 140px;
+  flex-shrink: 0;
+}
+
+.model-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-primary-50);
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: 0.825rem;
+  color: var(--color-primary-700);
+  flex-shrink: 0;
+}
+
+.badge-cpu {
+  width: 14px;
+  height: 14px;
+  color: var(--color-primary-600);
 }
 
 .main-content {
   flex: 1;
-  padding: 2rem;
   overflow-y: auto;
 }
 
+@media (max-width: 860px) {
+  .top-bar {
+    padding: 0 16px;
+  }
+}
+
 @media (max-width: 768px) {
-  .sidebar {
-    width: 60px;
-    padding: 1rem 0;
+  .top-bar {
+    height: 56px;
   }
 
-  .logo-text {
+  .top-bar-spacer {
     display: none;
   }
 
-  .nav-label {
+  .tab-link {
+    padding: 6px 14px;
+    font-size: 0.8125rem;
+  }
+
+  .tab-icon {
+    width: 14px;
+    height: 14px;
+  }
+}
+
+@media (max-width: 540px) {
+  .tab-link {
+    padding: 6px 12px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .tab-nav {
+    gap: 2px;
+    padding: 3px;
+  }
+
+  .tab-label {
     display: none;
   }
 
-  .nav-item {
-    justify-content: center;
-    padding: 0.75rem;
+  .tab-link {
+    padding: 6px 10px;
   }
 
-  .main-content {
-    padding: 1rem;
+  .logo span {
+    display: none;
   }
 }

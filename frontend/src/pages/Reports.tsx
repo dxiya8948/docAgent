@@ -1,20 +1,9 @@
 import { useState, useEffect } from 'react';
 import { BarChart3, MessageSquare, TrendingUp, Clock, ThumbsUp, ThumbsDown, Calendar, Search, RefreshCw } from 'lucide-react';
-import { getMessages, getStats } from '../api/client';
+import { getMessages, getStats, type ReportMessage } from '../api/client';
 import './Reports.scss';
 
-interface Message {
-    id: number;
-    conversation_id: string;
-    conversation_title: string;
-    role: string;
-    content: string;
-    timestamp: number;
-    query_type: string;
-    relevant_docs: string[];
-    response_time: number;
-    feedback: number;
-}
+type Message = ReportMessage;
 
 interface Stats {
     conversation_count: number;

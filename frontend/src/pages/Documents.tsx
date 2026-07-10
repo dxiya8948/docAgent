@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { uploadDocument, deleteDocument as deleteDocumentAPI, listDocuments as listDocumentsAPI, getDocumentStatus, getEmbeddingConfig, generateWiki, getWikiStatus } from '../api/client';
 import { saveDocument, deleteDocument } from '../storage/documentStore';
 import type { Document, EmbeddingConfig } from '../types';
-import { Upload, Trash2, FileText, File, CheckCircle, AlertCircle, Loader2, Database, MessageSquare, BookOpen, RefreshCw } from 'lucide-react';
+import { UploadCloud, Trash2, FileText, FileCode, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, Search, BrainCircuit, Sparkles, Type, Puzzle, Calendar } from 'lucide-react';
 import './Documents.scss';
 
 const Documents: React.FC = () => {
@@ -12,8 +12,9 @@ const Documents: React.FC = () => {
   const [uploadError, setUploadError] = useState('');
   const [uploadMode, setUploadMode] = useState<'prompt' | 'rag'>('prompt');
   const [embeddingConfig, setEmbeddingConfig] = useState<EmbeddingConfig | null>(null);
-  const [wikiUpdatedAt, setWikiUpdatedAt] = useState<number | null>(null);
+  const [, setWikiUpdatedAt] = useState<number | null>(null);
   const [isGeneratingWiki, setIsGeneratingWiki] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const pollingRefs = useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
 
   useEffect(() => {
@@ -56,7 +57,7 @@ const Documents: React.FC = () => {
       if (response.success) {
         setWikiUpdatedAt(response.updated_at || null);
         setUploadSuccess(true);
-        setTimeout(() => setUploadSuccess(false), 3000);
+        setTimeout(() => setUploadSuccess(false), 5000);
       } else {
         setUploadError(response.message || 'Wiki生成失败');
       }
@@ -112,39 +113,73 @@ const Documents: React.FC = () => {
     }
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  const handleFileUpload = async (files: FileList) => {
     if (!files || files.length === 0) return;
-
-    const file = files[0];
-    const ext = file.name.split('.').pop()?.toLowerCase();
-    if (!ext || !['txt', 'md', 'markdown'].includes(ext)) {
-      setUploadError('仅支持 TXT 和 Markdown 格式');
-      return;
-    }
 
     setUploadSuccess(false);
     setUploadError('');
 
-    try {
-      if (uploadMode === 'rag' && (!embeddingConfig || !embeddingConfig.api_key)) {
-        setUploadError('请先在设置页面配置向量化模型API Key');
-        return;
+    const validExts = ['.txt', '.pdf', '.md', '.docx', '.doc'];
+    let hasValid = false;
+
+    for (const file of Array.from(files)) {
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (validExts.includes(ext || '')) {
+        hasValid = true;
+        
+        try {
+          if (uploadMode === 'rag' && (!embeddingConfig || !embeddingConfig.api_key)) {
+            setUploadError('请先在设置页面配置向量化模型API Key');
+            return;
+          }
+          
+          const response = await uploadDocument(file, uploadMode);
+          
+          if (response.success && response.document) {
+            await saveDocument(response.document);
+            await loadDocuments();
+          } else {
+            setUploadError(response.error || '上传失败');
+          }
+        } catch (error) {
+          setUploadError('上传失败: ' + (error as Error).message);
+        }
       }
-      
-      const response = await uploadDocument(file, uploadMode);
-      
-      if (response.success && response.document) {
-        await saveDocument(response.document);
-        await loadDocuments();
-      } else {
-        setUploadError(response.error || '上传失败');
-      }
-    } catch (error) {
-      setUploadError('上传失败: ' + (error as Error).message);
-    } finally {
-      e.target.value = '';
     }
+
+    if (hasValid) {
+      setUploadSuccess(true);
+      setTimeout(() => setUploadSuccess(false), 5000);
+    } else {
+      setUploadError('上传失败，请检查文件格式后重试');
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileUpload(files);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFileUpload(files);
+    }
+    e.target.value = '';
   };
 
   const handleDeleteDocument = async (documentId: string) => {
@@ -159,169 +194,184 @@ const Documents: React.FC = () => {
     }
   };
 
-  const formatFileSize = (charCount: number) => {
-    if (charCount < 1024) return charCount + ' 字符';
-    return (charCount / 1024).toFixed(1) + ' KB';
+  const formatCharCount = (charCount: number) => {
+    return charCount.toLocaleString() + ' 字符';
   };
 
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp * 1000).toLocaleString('zh-CN');
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  };
+
+  const getFileIcon = (filename: string) => {
+    if (filename.endsWith('.md') || filename.endsWith('.markdown')) {
+      return FileText;
+    } else if (filename.endsWith('.json') || filename.endsWith('.js') || filename.endsWith('.ts') || filename.endsWith('.py')) {
+      return FileCode;
+    } else if (filename.endsWith('.xlsx') || filename.endsWith('.csv')) {
+      return FileSpreadsheet;
+    }
+    return FileText;
   };
 
   return (
-    <div className="documents-container">
-      <div className="header">
-        <h1>文档管理</h1>
-        <p className="subtitle">上传和管理您的文档</p>
+    <div className="documents-page">
+      <div className="bg-blobs" aria-hidden="true">
+        <div className="blob blob-1"></div>
+        <div className="blob blob-2"></div>
+        <div className="blob blob-3"></div>
       </div>
 
-      <div className="upload-section">
-        <div className="mode-selector">
-          <p className="mode-label">上传模式</p>
-          <div className="mode-options">
-            <button
-              className={`mode-option ${uploadMode === 'prompt' ? 'active' : ''}`}
-              onClick={() => setUploadMode('prompt')}
-            >
-              <MessageSquare className="mode-icon" />
-              <span>Prompt检索</span>
-            </button>
-            <button
-              className={`mode-option ${uploadMode === 'rag' ? 'active' : ''} ${(!embeddingConfig || !embeddingConfig.api_key) ? 'disabled' : ''}`}
-              onClick={() => {
-                if (embeddingConfig && embeddingConfig.api_key) {
-                  setUploadMode('rag');
-                }
-              }}
-            >
-              <Database className="mode-icon" />
-              <span>RAG向量化</span>
-            </button>
-          </div>
-          {uploadMode === 'rag' && (!embeddingConfig || !embeddingConfig.api_key) && (
-            <p className="mode-hint">请先在设置页面配置向量化模型API Key</p>
-          )}
+      <main className="main-content">
+        <div className="page-header">
+          <h1>文档管理</h1>
+          <p>上传和管理您的知识文档，支持 Prompt 检索与 RAG 向量化两种处理模式</p>
         </div>
 
-        <div className="upload-area" onClick={() => document.getElementById('file-input')?.click()}>
+        <div className="upload-mode-selector" role="radiogroup" aria-label="上传模式选择">
+          <button
+            className={`mode-btn ${uploadMode === 'prompt' ? 'active' : ''}`}
+            role="radio"
+            aria-checked={uploadMode === 'prompt'}
+            onClick={() => setUploadMode('prompt')}
+          >
+            <Search />
+            Prompt检索
+          </button>
+          <button
+            className={`mode-btn ${uploadMode === 'rag' ? 'active' : ''}`}
+            role="radio"
+            aria-checked={uploadMode === 'rag'}
+            onClick={() => {
+              if (embeddingConfig && embeddingConfig.api_key) {
+                setUploadMode('rag');
+              }
+            }}
+            disabled={!embeddingConfig || !embeddingConfig.api_key}
+          >
+            <BrainCircuit />
+            RAG向量化
+          </button>
+        </div>
+
+        <div
+          className={`upload-dropzone ${isDragging ? 'drag-over' : ''}`}
+          role="button"
+          tabIndex={0}
+          aria-label="点击或拖拽上传文档"
+          onClick={() => document.getElementById('fileInput')?.click()}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              document.getElementById('fileInput')?.click();
+            }
+          }}
+        >
           <input
-            id="file-input"
+            id="fileInput"
             type="file"
-            accept=".txt,.md,.markdown"
-            onChange={handleFileUpload}
+            accept=".txt,.pdf,.md,.docx,.doc"
+            multiple
+            onChange={handleFileInputChange}
             style={{ display: 'none' }}
           />
-          <Upload className="upload-icon" />
-          <div className="upload-text">
-            <p className="upload-title">点击或拖拽上传文件</p>
-            <p className="upload-hint">支持 TXT 和 Markdown 格式</p>
+          <div className="upload-icon-wrapper">
+            <UploadCloud />
           </div>
+          <div className="upload-title">拖拽文件到此处，或 <span>点击上传</span></div>
+          <div className="upload-hint">支持 TXT、PDF、Markdown、Word 格式，单个文件不超过 20MB</div>
         </div>
 
         {uploadSuccess && (
-          <div className="success-message">
-            <CheckCircle className="success-icon" />
-            文件上传成功！
+          <div className="message-area message-success">
+            <CheckCircle2 />
+            <span>文档上传成功，正在后台处理中...</span>
           </div>
         )}
 
         {uploadError && (
-          <div className="error-message">
-            <AlertCircle className="error-icon" />
-            {uploadError}
+          <div className="message-area message-error">
+            <AlertCircle />
+            <span>{uploadError}</span>
           </div>
         )}
-      </div>
 
-      <div className="documents-section">
-        <div className="section-header-row">
-          <h2>已上传文档</h2>
-          <div className="wiki-controls">
-            <button
-              className="wiki-btn"
-              onClick={handleGenerateWiki}
-              disabled={isGeneratingWiki || documents.length === 0}
-            >
+        <section className="doc-list-section" aria-label="已上传文档列表">
+          <div className="doc-list-header">
+            <h2>已上传文档</h2>
+            <button className="wiki-btn" onClick={handleGenerateWiki} disabled={isGeneratingWiki || documents.length === 0} aria-label="Wiki生成">
               {isGeneratingWiki ? (
                 <>
-                  <RefreshCw className="wiki-icon spinning" />
-                  <span>生成中...</span>
+                  <Loader2 className="animate-spin" />
+                  生成中...
                 </>
               ) : (
                 <>
-                  <BookOpen className="wiki-icon" />
-                  <span>Wiki生成</span>
+                  <Sparkles />
+                  Wiki生成
                 </>
               )}
             </button>
-            {wikiUpdatedAt && (
-              <span className="wiki-time">
-                上次更新: {formatDate(wikiUpdatedAt)}
-              </span>
-            )}
           </div>
-        </div>
 
-        {isLoading ? (
-          <div className="loading">
-            <Loader2 className="loading-icon" />
-            加载中...
-          </div>
-        ) : documents.length === 0 ? (
-          <div className="empty-documents">
-            <FileText className="empty-icon" />
-            <p>暂无文档</p>
-            <p className="empty-hint">上传文档后，您可以在聊天页面基于文档内容提问</p>
-          </div>
-        ) : (
-          <div className="documents-list">
-            {documents.map((doc) => (
-              <div key={doc.id} className="document-card">
-                <div className="document-icon">
-                  {doc.filename.endsWith('.md') || doc.filename.endsWith('.markdown') ? (
-                    <FileText className="icon markdown" />
-                  ) : (
-                    <File className="icon txt" />
-                  )}
-                </div>
-                <div className="document-info">
-                  <h3 className="document-name">{doc.filename}</h3>
-                  <div className="document-meta">
-                    <span className="meta-item">
-                      <File className="meta-icon" />
-                      {formatFileSize(doc.char_count)}
-                    </span>
-                    <span className="meta-item">
-                      <FileText className="meta-icon" />
-                      {doc.chunk_count} 个片段
-                    </span>
-                    <span className="meta-item">{formatDate(doc.created_at)}</span>
+          {isLoading ? (
+            <div className="loading-state">
+              <Loader2 className="loading-icon" />
+              <span>加载中...</span>
+            </div>
+          ) : documents.length === 0 ? (
+            <div className="empty-state">
+              <img src="/assets/empty-documents.jpg" alt="暂无文档" className="empty-state-image" />
+              <h3>暂无文档</h3>
+              <p>上传您的第一份文档，开始构建知识库</p>
+            </div>
+          ) : (
+            <div className="doc-cards">
+              {documents.map((doc) => {
+                const Icon = getFileIcon(doc.filename);
+                return (
+                  <div key={doc.id} className="doc-card">
+                    <button className="delete-btn" onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteDocument(doc.id);
+                    }} aria-label="删除文档">
+                      <Trash2 />
+                    </button>
+                    <div className="doc-card-icon">
+                      <Icon />
+                    </div>
+                    <div className="doc-card-body">
+                      <div className="doc-card-filename">{doc.filename}</div>
+                      <div className="doc-card-meta">
+                        <span><Type /> {formatCharCount(doc.char_count)}</span>
+                        <span><Puzzle /> {doc.chunk_count} 分块</span>
+                        <span><Calendar /> {formatDate(doc.created_at)}</span>
+                      </div>
+                    </div>
+                    <div className="doc-card-badges">
+                      <span className={`badge ${doc.status === 'processed' ? 'badge-status-done' : doc.status === 'processing' ? 'badge-status-processing' : 'badge-status-error'}`}>
+                        {doc.status === 'processed' ? (
+                          <><CheckCircle2 /> 已完成</>
+                        ) : doc.status === 'processing' ? (
+                          <><Loader2 className="animate-spin" /> 处理中</>
+                        ) : (
+                          <><AlertCircle /> 处理失败</>
+                        )}
+                      </span>
+                      <span className={`badge ${doc.mode === 'rag' ? 'badge-mode-rag' : 'badge-mode-prompt'}`}>
+                        {doc.mode === 'rag' ? 'RAG' : 'Prompt'}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="document-actions">
-                  <span className={`status-badge ${doc.status}`}>
-                    {doc.status === 'processed' ? '已处理' : 
-                     doc.status === 'processing' ? '处理中...' : 
-                     doc.status === 'error' ? '处理失败' : doc.status}
-                  </span>
-                  {doc.mode && (
-                    <span className={`mode-badge ${doc.mode}`}>
-                      {doc.mode === 'rag' ? 'RAG' : 'Prompt'}
-                    </span>
-                  )}
-                  <button
-                    className="delete-btn"
-                    onClick={() => handleDeleteDocument(doc.id)}
-                    title="删除文档"
-                  >
-                    <Trash2 className="delete-icon" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 };

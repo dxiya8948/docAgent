@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { streamQA, queryQA, listConversations, getConversationHistory, deleteConversation, getCurrentProvider, getAvailableProviders } from '../api/client';
+import { streamQA, queryQA, listConversations, getConversationHistory, deleteConversation } from '../api/client';
 import { loadSettings } from '../storage/configStore';
 import type { Message, Conversation, QARequest } from '../types';
-import { Send, Trash2, MessageCircle, Bot, User, Loader2, ChevronDown, X, Sparkles } from 'lucide-react';
+import { Trash2, MessageCircle, Bot, User, Loader2, ChevronDown, X, Sparkles, Search, MoreHorizontal, Plus, Paperclip, ArrowUp, FileText, Code2, GraduationCap } from 'lucide-react';
+import MarkdownRenderer from '../components/MarkdownRenderer';
 import './Chat.scss';
 
-const providerNames: Record<string, string> = {
-  openai: 'OpenAI / 兼容API',
-  claude: 'Claude',
-  local: '本地模型'
-};
+const modelOptions = [
+  { id: 'glm-4-plus', name: 'GLM-4-Plus', provider: 'zhipu', desc: '智谱 AI · 高性能通用模型，推理能力强' },
+  { id: 'glm-4-flash', name: 'GLM-4-Flash', provider: 'zhipu', desc: '智谱 AI · 极速推理模型，响应更快' },
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'openai', desc: 'OpenAI · 多模态旗舰模型' },
+  { id: 'claude-sonnet', name: 'Claude Sonnet', provider: 'claude', desc: 'Anthropic · 长文本理解优秀' },
+];
 
 const Chat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -20,10 +22,9 @@ const Chat: React.FC = () => {
   const [selectedDocuments] = useState<string[]>([]);
   const [currentProvider, setCurrentProvider] = useState<string>('openai');
   const [currentModel, setCurrentModel] = useState<string>('gpt-4o-mini');
-  const [availableProviders, setAvailableProviders] = useState<string[]>([]);
-  const [providersConfig, setProvidersConfig] = useState<Record<string, { model?: string; model_name?: string; base_url?: string }>>({});
   const [showProviderModal, setShowProviderModal] = useState(false);
   const [streamEnabled, setStreamEnabled] = useState(true);
+  const [selectedModel, setSelectedModel] = useState<string>('glm-4-plus');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -49,18 +50,10 @@ const Chat: React.FC = () => {
         if (providerConfig) {
           setCurrentModel(providerConfig.model || providerConfig.model_name || '');
         }
-        setProvidersConfig(localSettings.providers);
         setStreamEnabled(localSettings.stream !== undefined ? localSettings.stream : true);
       }
-
-      const providersData = await getAvailableProviders();
-      setAvailableProviders(providersData.providers);
-    } catch {
-      const providerData = await getCurrentProvider();
-      setCurrentProvider(providerData.provider);
-      if (providerData.config) {
-        setCurrentModel((providerData.config.model || providerData.config.model_name || '') as string);
-      }
+    } catch (error) {
+      console.error('Failed to load provider info:', error);
     }
   };
 
@@ -85,11 +78,14 @@ const Chat: React.FC = () => {
     }
   };
 
-  const handleProviderChange = (providerType: string) => {
-    setCurrentProvider(providerType);
-    const config = providersConfig[providerType];
-    if (config) {
-      setCurrentModel(config.model || config.model_name || '');
+  const handleModelSelect = (modelId: string) => {
+    setSelectedModel(modelId);
+  };
+
+  const confirmModelSelect = () => {
+    const model = modelOptions.find(m => m.id === selectedModel);
+    if (model) {
+      setCurrentModel(model.name);
     }
     setShowProviderModal(false);
   };
@@ -198,181 +194,274 @@ const Chat: React.FC = () => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && e.ctrlKey) {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      if (input.trim()) {
+        handleSend();
+      }
     }
   };
 
   const formatPreview = (text: string) => {
-    return text.length > 30 ? text.substring(0, 30) + '...' : text;
+    return text.length > 40 ? text.substring(0, 40) + '...' : text;
+  };
+
+  const formatTime = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return '刚刚';
+    if (minutes < 60) return `${minutes}分钟前`;
+    if (hours < 24) return `${hours}小时前`;
+    if (days < 7) return `${days}天前`;
+    return `${date.getMonth() + 1}/${date.getDate()}`;
+  };
+
+  const getConvIcon = (index: number) => {
+    const icons = [MessageCircle, FileText, Sparkles, Code2, GraduationCap];
+    return icons[index % icons.length];
+  };
+
+  const suggestions = [
+    '什么是 RAG 检索增强生成？',
+    '如何优化文档切片策略？',
+    '向量检索的常见方法有哪些？'
+  ];
+
+  const handleSuggestionClick = (text: string) => {
+    setInput(text);
   };
 
   return (
-    <div className="chat-container">
-      <div className="sidebar">
-        <div className="sidebar-header">
-          <h3>对话历史</h3>
-          <button className="new-chat-btn" onClick={startNewConversation}>
-            <MessageCircle className="icon" />
+    <div className="chat-page">
+      <div className="blob-extra" aria-hidden="true"></div>
+
+      <div className="chat-container">
+      <aside className="conv-panel" aria-label="对话记录">
+        <div className="conv-header">
+          <h2>对话记录</h2>
+          <button className="btn-new-conv" onClick={startNewConversation} aria-label="新对话">
+            <Plus className="plus-icon" />
             新对话
           </button>
         </div>
 
         {conversations.length === 0 ? (
           <div className="empty-conversations">
-            <MessageCircle className="empty-icon" />
+            <img src="/assets/empty-conversations.jpg" alt="暂无对话" className="empty-icon" />
             <p>暂无对话</p>
           </div>
         ) : (
-          <div className="conversation-list">
-            {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                className={`conversation-item ${conversationId === conv.id ? 'active' : ''}`}
-                onClick={() => loadConversation(conv.id)}
-              >
-                <div className="conversation-content">
-                  <p className="conversation-preview">{formatPreview(conv.last_message)}</p>
-                  <span className="conversation-meta">
-                    {conv.message_count} 条消息
-                  </span>
-                </div>
-                <button
-                  className="delete-conv-btn"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDeleteConversation(conv.id);
-                  }}
+          <div className="conv-list" role="list">
+            {conversations.map((conv, index) => {
+              const Icon = getConvIcon(index);
+              return (
+                <div
+                  key={conv.id}
+                  className={`conv-item ${conversationId === conv.id ? 'active' : ''}`}
+                  role="listitem"
+                  tabIndex={0}
+                  onClick={() => loadConversation(conv.id)}
                 >
-                  <Trash2 className="trash-icon" />
-                </button>
-              </div>
-            ))}
+                  <div className="conv-icon">
+                    <Icon className="conv-icon-inner" />
+                  </div>
+                  <div className="conv-body">
+                    <div className="conv-title">{formatPreview(conv.last_message)}</div>
+                    <div className="conv-preview">{conv.last_message || '未命名对话'}</div>
+                    <div className="conv-meta">
+                      <span>{conv.message_count || 0} 条消息</span>
+                      <span>·</span>
+                      <span>{formatTime(conv.updated_at || Date.now())}</span>
+                    </div>
+                  </div>
+                  <button
+                    className="conv-delete"
+                    aria-label="删除对话"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteConversation(conv.id);
+                    }}
+                  >
+                    <Trash2 className="trash-icon" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
-      </div>
+      </aside>
 
-      <div className="chat-area">
-        <div className="chat-header">
-          <div className="model-selector" onClick={() => setShowProviderModal(true)}>
-            <Sparkles className="model-icon" />
-            <div className="model-info">
-              <span className="model-name">{providerNames[currentProvider] || currentProvider}</span>
-              <span className="model-version">{currentModel}</span>
-            </div>
+      <main className="chat-area">
+        <div className="chat-subheader">
+          <button className="model-selector" onClick={() => setShowProviderModal(true)} aria-haspopup="dialog">
+            <Bot className="bot-icon" />
+            <span>{currentModel || 'GLM-4-Plus'}</span>
             <ChevronDown className="chevron-icon" />
+          </button>
+          <div className="chat-subheader-actions">
+            <button className="btn-icon" aria-label="搜索对话">
+              <Search className="icon" />
+            </button>
+            <button className="btn-icon" aria-label="更多选项">
+              <MoreHorizontal className="icon" />
+            </button>
           </div>
         </div>
 
         {messages.length === 0 ? (
-          <div className="welcome-screen">
-            <Bot className="welcome-icon" />
-            <h2>欢迎使用智能问答</h2>
-            <p>上传文档后，您可以通过自然语言提问获取答案</p>
-            <div className="current-model-display">
-              <Sparkles className="small-icon" />
-              <span>当前模型：{providerNames[currentProvider] || currentProvider} - {currentModel}</span>
+          <div className="chat-content">
+            <div className="welcome-state">
+              <img src="/assets/welcome-illustration.jpg" alt="欢迎使用智能问答" className="welcome-illustration" />
+              <h1 className="welcome-title">欢迎使用智能问答</h1>
+              <p className="welcome-subtitle">
+                基于检索增强生成技术（RAG），为您提供精准的文档智能问答服务。上传您的文档，开始高效的AI对话体验。
+              </p>
+              <div className="welcome-model-badge">
+                <Sparkles className="badge-icon" />
+                当前模型：{currentModel || 'GLM-4-Plus'}
+              </div>
+              <div className="welcome-suggestions">
+                {suggestions.map((text, index) => (
+                  <button
+                    key={index}
+                    className="suggestion-btn"
+                    onClick={() => handleSuggestionClick(text)}
+                  >
+                    {text}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         ) : (
-          <div className="messages-list">
-            {messages.map((msg, index) => (
-              <div key={index} className={`message ${msg.role}`}>
-                <div className="message-avatar">
-                  {msg.role === 'user' ? (
-                    <User className="avatar-icon user" />
-                  ) : (
-                    <Bot className="avatar-icon bot" />
-                  )}
-                </div>
-                <div className="message-content">
-                  <span className="role-label">{msg.role === 'user' ? '您' : 'AI'}</span>
-                  <div className="message-text">
-                    {msg.content}
+          <div className="chat-content">
+            <div className="messages-container">
+              {messages.map((msg, index) => (
+                <div key={index} className={`message-row ${msg.role === 'user' ? 'user-row' : 'ai-row'}`}>
+                  <div className={`msg-avatar ${msg.role === 'user' ? 'user-avatar' : 'ai-avatar'}`}>
+                    {msg.role === 'user' ? (
+                      <User className="avatar-icon" />
+                    ) : (
+                      <Bot className="avatar-icon" />
+                    )}
+                  </div>
+                  <div>
+                    <div className={`msg-bubble ${msg.role === 'user' ? 'user-bubble' : 'ai-bubble'}`}>
+                      {msg.role === 'assistant' ? (
+                        <MarkdownRenderer content={msg.content} />
+                      ) : (
+                        <span className="plain-text">{msg.content}</span>
+                      )}
+                    </div>
+                    <div className="msg-time">
+                      {formatTime(msg.timestamp)}
+                      {msg.role === 'assistant' && ` · ${currentModel || 'GLM-4-Plus'}`}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            {isGenerating && (
-              <div className="message assistant">
-                <div className="message-avatar">
-                  <Bot className="avatar-icon bot" />
-                </div>
-                <div className="message-content">
-                  <span className="role-label">AI</span>
-                  <div className="typing-indicator">
-                    <Loader2 className="typing-dot" />
-                    <Loader2 className="typing-dot" />
-                    <Loader2 className="typing-dot" />
+              ))}
+              {isGenerating && (
+                <div className="typing-indicator">
+                  <div className="msg-avatar ai-avatar">
+                    <Bot className="avatar-icon" />
+                  </div>
+                  <div className="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
                   </div>
                 </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
+              )}
+              <div ref={messagesEndRef} />
+            </div>
           </div>
         )}
 
         <div className="input-area">
-          <textarea
-            className="message-input"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="输入您的问题...（Ctrl+Enter 发送）"
-            disabled={isGenerating}
-          />
-          <button
-            className={`send-btn ${isGenerating ? 'loading' : ''}`}
-            onClick={handleSend}
-            disabled={!input.trim() || isGenerating}
-          >
-            {isGenerating ? (
-              <Loader2 className="spinner" />
-            ) : (
-              <Send className="send-icon" />
-            )}
-          </button>
+          <div className="input-wrapper">
+            <button className="btn-attach" aria-label="添加附件">
+              <Paperclip className="attach-icon" />
+            </button>
+            <textarea
+              className="chat-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onInput={(e) => {
+                const target = e.target as HTMLTextAreaElement;
+                target.style.height = 'auto';
+                target.style.height = Math.min(target.scrollHeight, 120) + 'px';
+              }}
+              placeholder="输入您的问题，按 Enter 发送..."
+              aria-label="消息输入"
+              disabled={isGenerating}
+            />
+            <button
+              className="btn-send"
+              onClick={handleSend}
+              disabled={!input.trim() || isGenerating}
+              aria-label="发送消息"
+            >
+              {isGenerating ? (
+                <Loader2 className="send-loader" />
+              ) : (
+                <ArrowUp className="send-icon" />
+              )}
+            </button>
+          </div>
+          <div className="input-hint">
+            <span><kbd>Enter</kbd> 发送</span>
+            <span><kbd>Shift + Enter</kbd> 换行</span>
+          </div>
         </div>
-      </div>
+      </main>
 
       {showProviderModal && (
-        <div className="modal-overlay" onClick={() => setShowProviderModal(false)}>
-          <div className="provider-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay" onClick={() => setShowProviderModal(false)} role="dialog" aria-modal="true" aria-label="选择模型">
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>选择模型</h3>
-              <button className="modal-close" onClick={() => setShowProviderModal(false)}>
+              <button className="modal-close" onClick={() => setShowProviderModal(false)} aria-label="关闭">
                 <X className="close-icon" />
               </button>
             </div>
-            <div className="provider-list">
-              {availableProviders.map((provider) => (
+            <div className="modal-body">
+              <div className="provider-pills">
+                <button className="provider-pill active">全部</button>
+                <button className="provider-pill">智谱 AI</button>
+                <button className="provider-pill">OpenAI</button>
+                <button className="provider-pill">Anthropic</button>
+              </div>
+
+              {modelOptions.map((model) => (
                 <div
-                  key={provider}
-                  className={`provider-item ${currentProvider === provider ? 'selected' : ''}`}
-                  onClick={() => handleProviderChange(provider)}
+                  key={model.id}
+                  className={`model-option ${selectedModel === model.id ? 'selected' : ''}`}
+                  onClick={() => handleModelSelect(model.id)}
+                  data-model={model.id}
                 >
-                  <div className="provider-radio">
-                    {currentProvider === provider && <div className="radio-dot" />}
-                  </div>
-                  <div className="provider-info">
-                    <span className="provider-name">{providerNames[provider] || provider}</span>
-                    <span className="provider-model">
-                      {providersConfig[provider]?.model || providersConfig[provider]?.model_name || '未配置'}
-                    </span>
+                  <div className="model-radio"></div>
+                  <div className="model-option-info">
+                    <div className="model-option-name">{model.name}</div>
+                    <div className="model-option-desc">{model.desc}</div>
                   </div>
                 </div>
               ))}
             </div>
             <div className="modal-footer">
-              <button className="modal-cancel" onClick={() => setShowProviderModal(false)}>
-                取消
-              </button>
+              <button className="btn-cancel" onClick={() => setShowProviderModal(false)}>取消</button>
+              <button className="btn-confirm" onClick={confirmModelSelect}>确认选择</button>
             </div>
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

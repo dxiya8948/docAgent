@@ -3,13 +3,33 @@ import Layout from './components/Layout';
 import Documents from './pages/Documents';
 import Chat from './pages/Chat';
 import Reports from './pages/Reports';
-import { lazy } from 'react';
+import { lazy, useState, useEffect } from 'react';
+import { loadSettings } from './storage/configStore';
 const Settings = lazy(() => import('./pages/Settings'));
 
 function App() {
+  const [modelBadge, setModelBadge] = useState<string>('');
+
+  useEffect(() => {
+    const loadModelBadge = async () => {
+      try {
+        const settings = await loadSettings();
+        if (settings) {
+          const providerConfig = settings.providers[settings.current_provider];
+          if (providerConfig) {
+            setModelBadge(providerConfig.model || providerConfig.model_name || '');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load model badge:', error);
+      }
+    };
+    loadModelBadge();
+  }, []);
+
   return (
     <BrowserRouter>
-      <Layout>
+      <Layout modelBadge={modelBadge || 'GLM-4-Plus'}>
         <Routes>
           <Route path="/documents" element={<Documents />} />
           <Route path="/chat" element={<Chat />} />
