@@ -74,3 +74,13 @@ export interface ProviderConfig {
   provider_type: string;
   config: Record<string, unknown>;
 }
+
+export interface LocalModelInfo {
+  model_id: string;
+  name: string;
+  repo_id: string;
+  size: string;
+  description: string;
+  requires_gpu: boolean;
+  status: string;
+}

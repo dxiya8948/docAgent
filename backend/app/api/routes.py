@@ -1,5 +1,6 @@
 import uuid
 import asyncio
+import json
 from typing import List
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import StreamingResponse
@@ -36,8 +37,46 @@ from ..config.settings import (
     update_embedding_config
 )
 from ..providers.factory import ProviderFactory
+from ..models.manager import ModelManager
 
 router = APIRouter()
+
+
+@router.get("/models/local/list")
+async def list_local_models_endpoint():
+    return {
+        "models": [],
+        "message": "本地模型下载功能已禁用，请使用 Ollama 运行本地模型。安装地址: https://ollama.com/download"
+    }
+
+
+@router.get("/models/local/status/{model_id}")
+async def get_local_model_status_endpoint(model_id: str):
+    return {
+        "model_id": model_id,
+        "status": "error",
+        "message": "本地模型下载功能已禁用，请使用 Ollama 运行本地模型"
+    }
+
+
+@router.post("/models/local/download/{model_id}")
+async def download_local_model_endpoint(model_id: str):
+    return {"status": "error", "message": "本地模型下载功能已禁用，请使用 Ollama 运行本地模型"}
+
+
+@router.post("/models/local/load/{model_id}")
+async def load_local_model_endpoint(model_id: str):
+    return {"status": "error", "message": "本地模型加载功能已禁用，请使用 Ollama 运行本地模型"}
+
+
+@router.post("/models/local/unload")
+async def unload_local_model_endpoint():
+    return {"status": "error", "message": "本地模型功能已禁用"}
+
+
+@router.get("/models/local/current")
+async def get_current_local_model_endpoint():
+    return {"model_id": None, "name": None, "message": "本地模型功能已禁用"}
 
 
 @router.post("/documents/upload", response_model=UploadResponse)
@@ -264,6 +303,17 @@ async def set_current_provider_endpoint(request: ProviderConfigRequest):
 @router.get("/settings/providers")
 async def get_available_providers_endpoint():
     return {"providers": ProviderFactory.get_available_providers()}
+
+
+@router.get("/settings/ollama/models")
+async def get_ollama_models_endpoint():
+    try:
+        from ..providers.ollama import OllamaProvider
+        provider = OllamaProvider(config={"base_url": "http://localhost:11434"})
+        models = await provider.list_models()
+        return {"models": models}
+    except Exception as e:
+        return {"models": [], "error": str(e)}
 
 
 @router.get("/health", response_model=HealthResponse)

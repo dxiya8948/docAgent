@@ -33,7 +33,10 @@
 }
 
 .documents-page {
+  width: 1200px;
   min-height: 100vh;
+  margin: 0 auto;
+  padding-top: 24px;
   background-color: var(--color-primary-bg);
   font-family: var(--font-body);
   color: var(--color-text-primary);
@@ -107,13 +110,13 @@
   }
 }
 
-.main-content {
-  position: relative;
-  z-index: 1;
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 40px 24px 80px;
-}
+// .main-content {
+//   position: relative;
+//   z-index: 1;
+//   max-width: 1100px;
+//   margin: 0 auto;
+//   padding: 40px 24px 80px;
+// }
 
 .page-header {
   margin-bottom: 32px;

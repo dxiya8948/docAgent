@@ -88,6 +88,10 @@ def find_relevant_documents(query: str, top_k: int = 5) -> List[str]:
         for keyword in query_keywords:
             if keyword in doc_keywords:
                 score += 1
+            
+            for doc_kw in doc_keywords:
+                if doc_kw in keyword or keyword in doc_kw:
+                    score += 0.5
         
         summary = entry.get('summary', '')
         for keyword in query_keywords:
@@ -140,26 +144,36 @@ async def find_relevant_documents_with_agent(
 
 {docs_text}
 
-请只输出最相关的文档ID，每行一个，最多输出{top_k}个。不要输出任何其他文字。
+请只输出最相关的文件名，每行一个，最多输出{top_k}个。不要输出任何其他文字。
 
 示例输出：
-doc_id_1
-doc_id_2
-doc_id_3"""
+document1.md
+document2.txt
+document3.md"""
     
     response = await provider.generate_answer(prompt, "")
     
     lines = response.strip().split('\n')
     relevant_ids = []
+    doc_filenames = {doc['filename']: doc['document_id'] for doc in docs_info}
+    
     for line in lines:
         line = line.strip()
-        if line and line in [doc['document_id'] for doc in docs_info]:
-            relevant_ids.append(line)
+        if line in doc_filenames:
+            relevant_ids.append(doc_filenames[line])
             if len(relevant_ids) >= top_k:
                 break
     
     if not relevant_ids:
-        return []
+        for line in lines:
+            line = line.strip()
+            for filename, doc_id in doc_filenames.items():
+                if line in filename or filename in line:
+                    relevant_ids.append(doc_id)
+                    if len(relevant_ids) >= top_k:
+                        break
+            if len(relevant_ids) >= top_k:
+                break
     
     return relevant_ids
 

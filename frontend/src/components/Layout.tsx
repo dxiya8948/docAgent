@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FileText, MessageSquare, Settings, Cpu } from 'lucide-react';
+import { FileText, MessageSquare, Settings, Cpu, BarChart3 } from 'lucide-react';
 import './Layout.scss';
 
 const navItems = [
@@ -40,14 +40,22 @@ const Layout: React.FC<{ children: React.ReactNode; modelBadge?: string }> = ({ 
           })}
         </nav>
 
-        {modelBadge ? (
-          <div className="model-badge">
-            <Cpu className="badge-cpu" />
-            {modelBadge}
-          </div>
-        ) : (
-          <div className="top-bar-spacer"></div>
-        )}
+        <div className="top-bar-right">
+          <Link
+            to="/report"
+            className="report-link"
+            aria-label="对话记录"
+          >
+            <BarChart3 className="report-icon" />
+            <span className="report-label">对话记录</span>
+          </Link>
+          {modelBadge ? (
+            <div className="model-badge">
+              <Cpu className="badge-cpu" />
+              {modelBadge}
+            </div>
+          ) : null}
+        </div>
       </header>
 
       <main className="main-content">

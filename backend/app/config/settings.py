@@ -31,6 +31,11 @@ DEFAULT_SETTINGS = {
         "local": {
             "model_name": "Qwen/Qwen1.5-1.8B-Chat",
             "enabled": False
+        },
+        "ollama": {
+            "base_url": "http://localhost:11434",
+            "model": "qwen2.5:0.5b",
+            "enabled": False
         }
     },
     "embedding": {
@@ -93,6 +98,9 @@ def update_provider_config(provider_type: str, config: Dict[str, Any]):
     
     if provider_type not in settings["providers"]:
         settings["providers"][provider_type] = {}
+    
+    if provider_type == "ollama" and "base_url" not in config:
+        config["base_url"] = "http://localhost:11434"
     
     settings["providers"][provider_type].update(config)
     save_settings(settings)

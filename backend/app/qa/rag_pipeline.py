@@ -76,13 +76,15 @@ async def build_context(query: str, provider_type: str, document_ids: List[str] 
                 context_parts.append("---")
     
     if prompt_docs:
-        provider_config = get_provider_config(provider_type)
         relevant_doc_ids = await find_relevant_documents_with_agent(
             query,
             provider_type,
-            provider_config,
+            get_provider_config(provider_type),
             top_k=3
         )
+        
+        if not relevant_doc_ids:
+            relevant_doc_ids = find_relevant_documents(query, top_k=3)
         
         if relevant_doc_ids:
             found_relevant = True

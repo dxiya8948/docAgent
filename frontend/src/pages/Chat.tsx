@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { streamQA, queryQA, listConversations, getConversationHistory, deleteConversation } from '../api/client';
-import { loadSettings } from '../storage/configStore';
+import { streamQA, queryQA, listConversations, getConversationHistory, deleteConversation, setCurrentProvider as updateProvider, getOllamaModels } from '../api/client';
+import { loadSettings, saveSettings } from '../storage/configStore';
 import type { Message, Conversation, QARequest } from '../types';
 import { Trash2, MessageCircle, Bot, User, Loader2, ChevronDown, X, Sparkles, Search, MoreHorizontal, Plus, Paperclip, ArrowUp, FileText, Code2, GraduationCap } from 'lucide-react';
 import MarkdownRenderer from '../components/MarkdownRenderer';
 import './Chat.scss';
 
-const modelOptions = [
-  { id: 'glm-4-plus', name: 'GLM-4-Plus', provider: 'zhipu', desc: '智谱 AI · 高性能通用模型，推理能力强' },
-  { id: 'glm-4-flash', name: 'GLM-4-Flash', provider: 'zhipu', desc: '智谱 AI · 极速推理模型，响应更快' },
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'openai', desc: 'OpenAI · 多模态旗舰模型' },
-  { id: 'claude-sonnet', name: 'Claude Sonnet', provider: 'claude', desc: 'Anthropic · 长文本理解优秀' },
-];
+interface ModelOption {
+  id: string;
+  name: string;
+  provider: string;
+  desc: string;
+}
 
 const Chat: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -21,10 +21,11 @@ const Chat: React.FC = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedDocuments] = useState<string[]>([]);
   const [currentProvider, setCurrentProvider] = useState<string>('openai');
-  const [currentModel, setCurrentModel] = useState<string>('gpt-4o-mini');
+  const [currentModel, setCurrentModel] = useState<string>('');
   const [showProviderModal, setShowProviderModal] = useState(false);
   const [streamEnabled, setStreamEnabled] = useState(true);
-  const [selectedModel, setSelectedModel] = useState<string>('glm-4-plus');
+  const [selectedModel, setSelectedModel] = useState<string>('');
+  const [modelOptions, setModelOptions] = useState<ModelOption[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,6 +52,49 @@ const Chat: React.FC = () => {
           setCurrentModel(providerConfig.model || providerConfig.model_name || '');
         }
         setStreamEnabled(localSettings.stream !== undefined ? localSettings.stream : true);
+        
+        const providers = localSettings.providers || {};
+        const options: ModelOption[] = [];
+        
+        if (providers.openai && providers.openai.model) {
+          options.push({
+            id: `openai-${providers.openai.model}`,
+            name: providers.openai.model,
+            provider: 'openai',
+            desc: 'OpenAI / 兼容API · 已配置'
+          });
+        }
+        
+        if (providers.claude && providers.claude.model) {
+          options.push({
+            id: `claude-${providers.claude.model}`,
+            name: providers.claude.model,
+            provider: 'claude',
+            desc: 'Claude · 已配置'
+          });
+        }
+        
+        try {
+          const ollamaResult = await getOllamaModels();
+          if (ollamaResult.models && ollamaResult.models.length > 0) {
+            ollamaResult.models.forEach((m) => {
+              options.push({
+                id: `local-${m.name}`,
+                name: m.name,
+                provider: 'local',
+                desc: `本地模型 · ${(m.details as Record<string, unknown>)?.parameter_size || ''}`
+              });
+            });
+          }
+        } catch {
+        }
+        
+        setModelOptions(options);
+        
+        const currentProviderConfig = providers[localSettings.current_provider];
+        if (currentProviderConfig && currentProviderConfig.model) {
+          setSelectedModel(`${localSettings.current_provider}-${currentProviderConfig.model}`);
+        }
       }
     } catch (error) {
       console.error('Failed to load provider info:', error);
@@ -82,10 +126,32 @@ const Chat: React.FC = () => {
     setSelectedModel(modelId);
   };
 
-  const confirmModelSelect = () => {
+  const confirmModelSelect = async () => {
     const model = modelOptions.find(m => m.id === selectedModel);
     if (model) {
-      setCurrentModel(model.name);
+      setCurrentProvider(model.provider);
+      
+      try {
+        const localSettings = await loadSettings();
+        if (localSettings) {
+          const providerConfig = localSettings.providers?.[model.provider];
+          
+          if (providerConfig) {
+            await updateProvider({ provider_type: model.provider, config: providerConfig });
+            
+            const modelName = providerConfig.model || providerConfig.model_name || model.name;
+            setCurrentModel(modelName);
+            
+            const updatedSettings = {
+              ...localSettings,
+              current_provider: model.provider
+            };
+            await saveSettings(updatedSettings);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to switch provider:', error);
+      }
     }
     setShowProviderModal(false);
   };
@@ -423,7 +489,7 @@ const Chat: React.FC = () => {
       </main>
 
       {showProviderModal && (
-        <div className="modal-overlay" onClick={() => setShowProviderModal(false)} role="dialog" aria-modal="true" aria-label="选择模型">
+      <div className="modal-overlay open" onClick={() => setShowProviderModal(false)} role="dialog" aria-modal="true" aria-label="选择模型">
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>选择模型</h3>
@@ -432,13 +498,6 @@ const Chat: React.FC = () => {
               </button>
             </div>
             <div className="modal-body">
-              <div className="provider-pills">
-                <button className="provider-pill active">全部</button>
-                <button className="provider-pill">智谱 AI</button>
-                <button className="provider-pill">OpenAI</button>
-                <button className="provider-pill">Anthropic</button>
-              </div>
-
               {modelOptions.map((model) => (
                 <div
                   key={model.id}

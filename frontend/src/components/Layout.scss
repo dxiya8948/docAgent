@@ -81,9 +81,40 @@
   height: 16px;
 }
 
-.top-bar-spacer {
-  width: 140px;
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
   flex-shrink: 0;
+}
+
+.report-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: 0.85rem;
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.report-link:hover {
+  color: var(--color-primary);
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.report-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.report-label {
+  font-size: 0.825rem;
 }
 
 .model-badge {
@@ -122,8 +153,9 @@
     height: 56px;
   }
 
-  .top-bar-spacer {
-    display: none;
+  .report-link {
+    padding: 5px 10px;
+    font-size: 0.78rem;
   }
 
   .tab-link {
