@@ -1,20 +1,35 @@
-# Build and Release Folders
-bin-debug/
-bin-release/
-[Oo]bj/
-[Bb]in/
+*.pyc
+__pycache__/
+.pytest_cache/
+.venv/
+.env
+.env.local
+*.db
+*.sqlite3
 
-# Other files and folders
-.settings/
+node_modules/
+dist/
+build/
+*.log
 
-# Executables
-*.swf
-*.air
-*.ipa
-*.apk
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Project files, i.e. `.project`, `.actionScriptProperties` and `.flexProperties`
-# should NOT be excluded as they contain compiler settings and other important
-# information for Eclipse / Flash Builder.
+backend/data/
+backend/chroma_db/
+backend/models/
+backend/sitemap.json
+backend/conversations.json
+backend/documents.json
+backend/settings.json
+backend/app/conversations.json
+backend/app/documents.json
+backend/app/settings.json
 
-frontend/doc-qa-redesign/*
+frontend/doc-qa-redesign/
+frontend/--css-path
+
+chroma_db/
+settings.json

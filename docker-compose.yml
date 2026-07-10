@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: doc-agent-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - backend-data:/app/data
+      - chroma-data:/app/chroma_db
+      - document-data:/app/app/documents
+    environment:
+      - PORT=8000
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: doc-agent-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:
+    name: doc-agent-backend-data
+  chroma-data:
+    name: doc-agent-chroma-data
+  document-data:
+    name: doc-agent-document-data
