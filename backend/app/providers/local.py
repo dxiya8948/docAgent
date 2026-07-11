@@ -1,7 +1,5 @@
 import os
-import torch
 from typing import List, Dict, AsyncGenerator
-from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModel, TextStreamer
 from .base import BaseProvider
 from ..models.manager import ModelManager
 
@@ -30,6 +28,24 @@ class LocalProvider(BaseProvider):
         self.embedding_tokenizer = None
         self.embedding_model = None
         self._embedding_model_path = embed_model_path
+        self._torch = None
+        self._AutoTokenizer = None
+        self._AutoModelForCausalLM = None
+        self._AutoModel = None
+        self._TextStreamer = None
+        self._asyncio = None
+
+    def _import_dependencies(self):
+        if self._torch is None:
+            import torch
+            from transformers import AutoTokenizer, AutoModelForCausalLM, AutoModel, TextStreamer
+            import asyncio
+            self._torch = torch
+            self._AutoTokenizer = AutoTokenizer
+            self._AutoModelForCausalLM = AutoModelForCausalLM
+            self._AutoModel = AutoModel
+            self._TextStreamer = TextStreamer
+            self._asyncio = asyncio
 
     async def ensure_model_manager(self):
         if self.model_manager is None:
@@ -46,6 +62,7 @@ class LocalProvider(BaseProvider):
         context: str = "",
         history: List[Dict] = None
     ) -> str:
+        self._import_dependencies()
         await self.ensure_loaded()
         
         tokenizer = self.model_manager.get_tokenizer()
@@ -92,6 +109,7 @@ class LocalProvider(BaseProvider):
         context: str = "",
         history: List[Dict] = None
     ) -> AsyncGenerator[str, None]:
+        self._import_dependencies()
         await self.ensure_loaded()
         
         tokenizer = self.model_manager.get_tokenizer()
@@ -115,7 +133,7 @@ class LocalProvider(BaseProvider):
         
         model_inputs = tokenizer([text], return_tensors="pt").to(model.device)
         
-        streamer = TextStreamer(
+        streamer = self._TextStreamer(
             tokenizer,
             skip_prompt=True,
             skip_special_tokens=True
@@ -141,12 +159,13 @@ class LocalProvider(BaseProvider):
                 full_response = response
 
     async def embed_text(self, text: str) -> List[float]:
+        self._import_dependencies()
         await self._ensure_embedding_loaded()
         
         inputs = self.embedding_tokenizer(text, return_tensors="pt", padding=True, truncation=True)
         inputs = {k: v.to(self.embedding_model.device) for k, v in inputs.items()}
         
-        with torch.no_grad():
+        with self._torch.no_grad():
             outputs = self.embedding_model(**inputs)
         
         embeddings = outputs.last_hidden_state.mean(dim=1).squeeze().cpu().numpy().tolist()
@@ -157,17 +176,17 @@ class LocalProvider(BaseProvider):
 
     async def _ensure_embedding_loaded(self):
         if self.embedding_tokenizer is None or self.embedding_model is None:
-            await asyncio.to_thread(self._sync_load_embedding)
+            await self._asyncio.to_thread(self._sync_load_embedding)
 
     def _sync_load_embedding(self):
-        self.embedding_tokenizer = AutoTokenizer.from_pretrained(
+        self.embedding_tokenizer = self._AutoTokenizer.from_pretrained(
             self.embedding_model_name,
             cache_dir=self._embedding_model_path
         )
-        self.embedding_model = AutoModel.from_pretrained(
+        self.embedding_model = self._AutoModel.from_pretrained(
             self.embedding_model_name,
             cache_dir=self._embedding_model_path
-        ).to("cuda" if torch.cuda.is_available() else "cpu")
+        ).to("cuda" if self._torch.cuda.is_available() else "cpu")
 
     @property
     def provider_name(self) -> str:
