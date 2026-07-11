@@ -257,6 +257,21 @@
   line-height: 1.5;
 }
 
+.upload-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--state-info);
+  margin-top: 4px;
+}
+
+.note-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 .message-area {
   margin-top: 16px;
   padding: 14px 20px;

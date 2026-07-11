@@ -53,6 +53,31 @@ def parse_docx(content: bytes) -> Tuple[str, dict]:
         return "", {"type": "docx", "char_count": 0, "error": str(e)}
 
 
+def parse_pdf(content: bytes) -> Tuple[str, dict]:
+    try:
+        import fitz
+        doc = fitz.open(stream=content, filetype="pdf")
+        text_content = ""
+        
+        for page in doc:
+            text = page.get_text()
+            if text.strip():
+                text_content += text + "\n\n"
+        
+        text_content = text_content.strip()
+        
+        return text_content, {
+            "type": "pdf",
+            "char_count": len(text_content),
+            "page_count": doc.page_count,
+            "is_text_based": len(text_content) > 0
+        }
+    except ImportError:
+        return "", {"type": "pdf", "char_count": 0, "error": "PyMuPDF 未安装"}
+    except Exception as e:
+        return "", {"type": "pdf", "char_count": 0, "error": str(e)}
+
+
 def parse_document(file_content: str, filename: str) -> Tuple[str, dict]:
     ext = os.path.splitext(filename)[1].lower()
     
@@ -67,7 +92,9 @@ def parse_document(file_content: str, filename: str) -> Tuple[str, dict]:
 def parse_document_bytes(file_content: bytes, filename: str) -> Tuple[str, dict]:
     ext = os.path.splitext(filename)[1].lower()
     
-    if ext == '.docx':
+    if ext == '.pdf':
+        return parse_pdf(file_content)
+    elif ext == '.docx':
         return parse_docx(file_content)
     elif ext == '.txt':
         try:

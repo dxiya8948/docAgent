@@ -88,8 +88,8 @@ async def upload_document_endpoint(
         content = await file.read()
         
         ext = file.filename.split('.')[-1].lower()
-        if ext not in ['txt', 'md', 'markdown', 'docx']:
-            return UploadResponse(success=False, error="仅支持 TXT、Markdown 和 Word 格式")
+        if ext not in ['txt', 'md', 'markdown', 'docx', 'pdf']:
+            return UploadResponse(success=False, error="仅支持 TXT、Markdown、Word 和 PDF 格式")
         
         if mode not in ["prompt", "rag"]:
             return UploadResponse(success=False, error="模式参数无效，仅支持 prompt 或 rag")

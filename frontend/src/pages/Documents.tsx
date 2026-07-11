@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { uploadDocument, deleteDocument as deleteDocumentAPI, listDocuments as listDocumentsAPI, getDocumentStatus, getEmbeddingConfig, generateWiki, getWikiStatus } from '../api/client';
 import { saveDocument, deleteDocument } from '../storage/documentStore';
 import type { Document, EmbeddingConfig } from '../types';
-import { UploadCloud, Trash2, FileText, FileCode, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, Search, BrainCircuit, Sparkles, Type, Puzzle, Calendar } from 'lucide-react';
+import { UploadCloud, Trash2, FileText, FileCode, FileSpreadsheet, CheckCircle2, AlertCircle, Loader2, Search, BrainCircuit, Sparkles, Type, Puzzle, Calendar, Info } from 'lucide-react';
 import './Documents.scss';
 
 const Documents: React.FC = () => {
@@ -119,7 +119,7 @@ const Documents: React.FC = () => {
     setUploadSuccess(false);
     setUploadError('');
 
-    const validExts = ['.txt', '.md', '.markdown', '.docx'];
+    const validExts = ['.txt', '.md', '.markdown', '.docx', '.pdf'];
     let hasValid = false;
 
     for (const file of Array.from(files)) {
@@ -273,7 +273,7 @@ const Documents: React.FC = () => {
           <input
             id="fileInput"
             type="file"
-            accept=".txt,.md,.markdown,.docx"
+            accept=".txt,.md,.markdown,.docx,.pdf"
             multiple
             onChange={handleFileInputChange}
             style={{ display: 'none' }}
@@ -282,7 +282,11 @@ const Documents: React.FC = () => {
             <UploadCloud />
           </div>
           <div className="upload-title">拖拽文件到此处，或 <span>点击上传</span></div>
-          <div className="upload-hint">支持 TXT、Markdown、Word 格式，单个文件不超过 20MB</div>
+          <div className="upload-hint">支持 TXT、Markdown、Word、PDF 格式，单个文件不超过 20MB</div>
+          <div className="upload-note">
+            <Info className="note-icon" />
+            <span>PDF 仅支持文本型文档，扫描件无法提取内容</span>
+          </div>
         </div>
 
         {uploadSuccess && (
