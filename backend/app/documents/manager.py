@@ -2,7 +2,7 @@ import uuid
 import json
 import os
 from typing import List, Dict, Optional
-from .parser import parse_document
+from .parser import parse_document, parse_document_bytes
 from .chunker import chunk_text
 from .store import store_document_chunks, delete_document_chunks, count_document_chunks
 from .sitemap import add_to_sitemap, remove_from_sitemap, find_relevant_documents, get_sitemap_entry
@@ -30,9 +30,14 @@ def get_document_by_id(document_id: str) -> Optional[Dict]:
     return next((doc for doc in documents if doc['id'] == document_id), None)
 
 
-async def upload_document(file_content: str, filename: str, mode: str = "prompt", embedding_provider_type: str = "openai") -> Dict:
+async def upload_document(file_content: str | bytes, filename: str, mode: str = "prompt", embedding_provider_type: str = "openai") -> Dict:
     document_id = str(uuid.uuid4())
-    parsed_text, metadata = parse_document(file_content, filename)
+    
+    if isinstance(file_content, bytes):
+        parsed_text, metadata = parse_document_bytes(file_content, filename)
+    else:
+        parsed_text, metadata = parse_document(file_content, filename)
+    
     metadata['content'] = parsed_text
     
     if mode == "rag":

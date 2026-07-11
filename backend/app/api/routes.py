@@ -86,11 +86,10 @@ async def upload_document_endpoint(
 ):
     try:
         content = await file.read()
-        content_str = content.decode('utf-8')
         
         ext = file.filename.split('.')[-1].lower()
-        if ext not in ['txt', 'md', 'markdown']:
-            return UploadResponse(success=False, error="仅支持 TXT 和 Markdown 格式")
+        if ext not in ['txt', 'md', 'markdown', 'docx']:
+            return UploadResponse(success=False, error="仅支持 TXT、Markdown 和 Word 格式")
         
         if mode not in ["prompt", "rag"]:
             return UploadResponse(success=False, error="模式参数无效，仅支持 prompt 或 rag")
@@ -100,9 +99,9 @@ async def upload_document_endpoint(
             if not embedding_config.get("api_key"):
                 return UploadResponse(success=False, error="RAG向量化模式需要配置有效的向量化模型API Key")
             embedding_provider_type = embedding_config.get('provider_type', 'openai')
-            document = await upload_document(content_str, file.filename, mode, embedding_provider_type)
+            document = await upload_document(content, file.filename, mode, embedding_provider_type)
         else:
-            document = await upload_document(content_str, file.filename, mode)
+            document = await upload_document(content, file.filename, mode)
         
         return UploadResponse(
             success=True,

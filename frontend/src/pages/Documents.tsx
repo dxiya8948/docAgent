@@ -119,7 +119,7 @@ const Documents: React.FC = () => {
     setUploadSuccess(false);
     setUploadError('');
 
-    const validExts = ['.txt', '.pdf', '.md', '.docx', '.doc'];
+    const validExts = ['.txt', '.md', '.markdown', '.docx'];
     let hasValid = false;
 
     for (const file of Array.from(files)) {
@@ -273,7 +273,7 @@ const Documents: React.FC = () => {
           <input
             id="fileInput"
             type="file"
-            accept=".txt,.pdf,.md,.docx,.doc"
+            accept=".txt,.md,.markdown,.docx"
             multiple
             onChange={handleFileInputChange}
             style={{ display: 'none' }}
@@ -282,7 +282,7 @@ const Documents: React.FC = () => {
             <UploadCloud />
           </div>
           <div className="upload-title">拖拽文件到此处，或 <span>点击上传</span></div>
-          <div className="upload-hint">支持 TXT、PDF、Markdown、Word 格式，单个文件不超过 20MB</div>
+          <div className="upload-hint">支持 TXT、Markdown、Word 格式，单个文件不超过 20MB</div>
         </div>
 
         {uploadSuccess && (
