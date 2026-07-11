@@ -3,6 +3,7 @@ import Layout from './components/Layout';
 import Documents from './pages/Documents';
 import Chat from './pages/Chat';
 import Report from './pages/Report';
+import WelcomeModal from './components/WelcomeModal';
 import { lazy, useState, useEffect } from 'react';
 import { loadSettings } from './storage/configStore';
 const Settings = lazy(() => import('./pages/Settings'));
@@ -38,6 +39,7 @@ function App() {
           <Route path="/" element={<Navigate to="/documents" />} />
         </Routes>
       </Layout>
+      <WelcomeModal />
     </BrowserRouter>
   );
 }
